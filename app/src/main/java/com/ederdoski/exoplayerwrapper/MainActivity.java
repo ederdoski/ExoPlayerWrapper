@@ -10,10 +10,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.ederdoski.exoplayerwrapper.components.ExoPlayerComponent;
+import com.ederdoski.exoplayerwrapper.interfaces.ExoPlayerComponetInterface;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.orhanobut.logger.AndroidLogAdapter;
+import com.orhanobut.logger.Logger;
 
-public class MainActivity extends AppCompatActivity implements PlayerControlView.VisibilityListener {
+public class MainActivity extends AppCompatActivity implements ExoPlayerComponetInterface{
 
     ExoPlayerComponent exoPlayerComponent;
 
@@ -42,14 +45,60 @@ public class MainActivity extends AppCompatActivity implements PlayerControlView
     }
 
     @Override
-    public void onVisibilityChange(int visibility) {
+    public void onCustomTrackingProgress() {
+        Logger.e("onCustomTrackingProgress");
+    }
 
+    @Override
+    public void onTrackingTenPercent() {
+        Logger.e("onTrackingTenPercent");
+    }
+
+    @Override
+    public void onTrackingFirstQuartil() {
+        Logger.e("onTrackingFirstQuartil");
+    }
+
+    @Override
+    public void onTrackingMidPoint() {
+        Logger.e("onTrackingMidPoint");
+    }
+
+    @Override
+    public void onTrackingThirdQuartil() {
+        Logger.e("onTrackingThirdQuartil");
+    }
+
+    @Override
+    public void onTrackingComplete() {
+        Logger.e("onTrackingComplete");
+    }
+
+    @Override
+    public void onTrackingEnded() {
+        Logger.e("onTrackingEnded");
+    }
+
+    @Override
+    public void onPauseTap() {
+        Logger.e("Pause tap");
+    }
+
+    @Override
+    public void onPlayTap() {
+        Logger.e("Play tap");
+    }
+
+    @Override
+    public void onVisibilityChanged(boolean isVisible) {
+        Logger.e("Visibility of Controls: " + isVisible);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.act_player);
+        Logger.addLogAdapter(new AndroidLogAdapter());
 
         PlayerView playerView = findViewById(R.id.exoPlayer);
 
@@ -58,12 +107,16 @@ public class MainActivity extends AppCompatActivity implements PlayerControlView
         String drmLicenseURI = "https://proxy.uat.widevine.com/proxy?video_id=d286538032258a1c&provider=widevine_test";
         String extension     = "mpd";
 
-        //---- Initialization For content with DRM
+        //---- Initialization For content with DRM without reports
 
-        exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, playerView, this);
+        //exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, false, playerView);
 
-        //---- Initialization for content without DRM
-        //exoPlayerComponent = new ExoPlayerComponent(this, videoURI, null, null, extension, playerView, this);
+        //---- Initialization for content without DRM without reports
+        //exoPlayerComponent = new ExoPlayerComponent(this, videoURI, null, null, extension, false, playerView);
+
+        //---- Initialization for content without DRM  with Tracking events in the player
+        exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, true, playerView);
+        exoPlayerComponent.eventTimeListener(10);
 
     }
 

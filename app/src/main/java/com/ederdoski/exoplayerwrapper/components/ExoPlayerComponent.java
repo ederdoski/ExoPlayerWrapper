@@ -3,12 +3,16 @@ package com.ederdoski.exoplayerwrapper.components;
 import android.app.Activity;
 import android.net.Uri;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
+import com.ederdoski.exoplayerwrapper.Constants;
 import com.ederdoski.exoplayerwrapper.R;
+import com.ederdoski.exoplayerwrapper.interfaces.ExoPlayerComponetInterface;
 import com.google.android.exoplayer2.BuildConfig;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
@@ -31,23 +35,33 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.EventLogger;
+import com.google.android.exoplayer2.Player.EventListener;
 import com.google.android.exoplayer2.util.Util;
 import com.orhanobut.logger.Logger;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
-public class ExoPlayerComponent {
+import static com.google.android.exoplayer2.Player.STATE_READY;
+
+public class ExoPlayerComponent implements PlayerControlView.VisibilityListener, EventListener {
 
     private static final CookieManager DEFAULT_COOKIE_MANAGER;
+
+    private int lastReport;
+    private int customEventTrigger;
+
+    private boolean isVideoPause;
+    private ExoPlayerComponetInterface exoplayerInterface;
 
     static {
         DEFAULT_COOKIE_MANAGER = new CookieManager();
         DEFAULT_COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
     }
-
     private Activity act;
     private String videoExtension;
     private String videoURl;
@@ -60,14 +74,18 @@ public class ExoPlayerComponent {
     private DefaultTrackSelector trackSelector;
     private PlayerControlView.VisibilityListener uiControllersListener;
 
-    public ExoPlayerComponent(Activity act, String videoURl, @Nullable String drmLicenseURL, @Nullable String drmScheme, String extension, PlayerView playerView, PlayerControlView.VisibilityListener uiControllersListener){
+    public ExoPlayerComponent(Activity act, String videoURl, @Nullable String drmLicenseURL, @Nullable String drmScheme, String extension, boolean reportEvents, PlayerView playerView){
         this.act           = act;
         this.playerView    = playerView;
         this.videoURl      = videoURl;
         this.extension     = extension;
         this.drmScheme     = drmScheme;
         this.drmLicenseURL = drmLicenseURL;
-        this.uiControllersListener = uiControllersListener;
+        this.uiControllersListener = this;
+
+        if(reportEvents) {
+            exoplayerInterface = (ExoPlayerComponetInterface) act;
+        }
 
         if (CookieHandler.getDefault() != DEFAULT_COOKIE_MANAGER) {
             CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER);
@@ -212,6 +230,7 @@ public class ExoPlayerComponent {
         playerView.setControllerVisibilityListener(uiControllersListener);
         playerView.requestFocus();
         playerView.setPlayer(getPlayer());
+        getPlayer().addListener(this);
 
         if(haveDRM) {
             getPlayer().prepare(mediaSource, false, false);
@@ -323,6 +342,110 @@ public class ExoPlayerComponent {
     }
 
     /**
+     * Metodo para reportar eventos en este caso detectar si los controles
+     * del player estan visibles o no
+     */
+   @Override
+    public void onVisibilityChange(int visibility) {
+        if(exoplayerInterface != null) {
+            if(visibility == Constants.CONTROLS_HIDE) {
+                exoplayerInterface.onVisibilityChanged(false);
+            }else{
+                exoplayerInterface.onVisibilityChanged(true);
+            }
+        }
+    }
+
+    /**
+     * Metodo para reportar eventos en este caso detectar cuando presionan el boton
+     * de play o le boton de pause.
+     */
+    @Override
+    public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+        if(exoplayerInterface != null) {
+            if (playWhenReady) {
+                if (playbackState == STATE_READY) {
+                    setVideoPause(false);
+                    exoplayerInterface.onPlayTap();
+                }
+            } else {
+                setVideoPause(true);
+                exoplayerInterface.onPauseTap();
+            }
+        }
+    }
+
+    /**
+     * Este metodo es una interfaz encargada de verificar los eventos de tiempo que puede tener el player
+     * para hacer mas facil el reporte de datos, actualmente: 10%, 25%, 50%, 75%, 95%, 100%
+     * y un evento customizable que reportara cada {customEventReportInSeconds} mientras
+     * el player este reproduciendo video.
+     */
+    public void eventTimeListener(int customEventReportInSeconds) {
+        if(exoplayerInterface != null) {
+
+            final Timer timer = new Timer();
+            final TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    act.runOnUiThread(() -> {
+
+                        if (getPlayer() != null) {
+
+                            exoplayerInterface = (ExoPlayerComponetInterface) act;
+                            long currentPosition = getCurrentPosition() * 100;
+                            Long percent = currentPosition / getDuration();
+
+                            if (percent.intValue() == Constants.TEN_PORCENT && lastReport != Constants.TEN_PORCENT) {
+                                exoplayerInterface.onTrackingTenPercent();
+                                lastReport = Constants.TEN_PORCENT;
+                            }
+
+                            if (percent.intValue() == Constants.FIRST_QUARTIL && lastReport != Constants.FIRST_QUARTIL) {
+                                exoplayerInterface.onTrackingFirstQuartil();
+                                lastReport = Constants.FIRST_QUARTIL;
+                            }
+
+                            if (percent.intValue() == Constants.MIDPOINT && lastReport != Constants.MIDPOINT) {
+                                exoplayerInterface.onTrackingMidPoint();
+                                lastReport = Constants.MIDPOINT;
+                            }
+
+                            if (percent.intValue() == Constants.THIRD_QUARTIL && lastReport != Constants.THIRD_QUARTIL) {
+                                exoplayerInterface.onTrackingThirdQuartil();
+                                lastReport = Constants.THIRD_QUARTIL;
+                            }
+
+                            if (percent.intValue() == Constants.COMPLETE && lastReport != Constants.COMPLETE) {
+                                exoplayerInterface.onTrackingComplete();
+                                lastReport = Constants.COMPLETE;
+                            }
+
+                            if (percent.intValue() == Constants.ENDED && lastReport != Constants.ENDED) {
+                                exoplayerInterface.onTrackingEnded();
+                                lastReport = Constants.ENDED;
+                            }
+
+                            if (customEventTrigger == customEventReportInSeconds) {
+                                exoplayerInterface.onCustomTrackingProgress();
+                                customEventTrigger = 0;
+                            } else {
+                                if (!isVideoPause()) {
+                                    customEventTrigger++;
+                                }
+                            }
+                            eventTimeListener(customEventReportInSeconds);
+                        }
+
+                    });
+                }
+            };
+            timer.schedule(task, 1000);
+
+        }
+    }
+
+    /**
      * Este metodo crea un objeto a partir del userAgent que simplemente funciona como clave valor
      * es necesario para registar el MediaSource.
      */
@@ -349,5 +472,21 @@ public class ExoPlayerComponent {
 
     public void setPlayer(SimpleExoPlayer player) {
         this.player = player;
+    }
+
+    public long getCurrentPosition() {
+        return player.getCurrentPosition();
+    }
+
+    public long getDuration() {
+        return player.getDuration();
+    }
+
+    public boolean isVideoPause() {
+        return isVideoPause;
+    }
+
+    public void setVideoPause(boolean videoPause) {
+        isVideoPause = videoPause;
     }
 }
