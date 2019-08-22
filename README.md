@@ -77,15 +77,97 @@ Actually There are two ways to reproduce content.
 
 * If your content have DRM 
 ```
-exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, playerView, this);
+exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, false, playerView);
 ```
 
 * If your content dont have DRM
 ```
-exoPlayerComponent = new ExoPlayerComponent(this, videoURI, null, null, extension, playerView, this);
+exoPlayerComponent = new ExoPlayerComponent(this, videoURI, null, null, extension, false, playerView);
 ```
 
 3) Enjoy.
+
+## Player events report
+
+For some users it is necessary to track the position of the player, to make reports, Here are some events to make reports.
+	
+* when the player have reproduce 10% of video
+```
+@Override
+public void onTrackingTenPercent() {}
+```
+
+* when the player have reproduce 25% of video
+```
+@Override
+public void onTrackingFirstQuartil() {}
+```
+
+* when the player have reproduce 50% of video
+```
+@Override
+public void onTrackingMidPoint() {}
+```
+
+* when the player have reproduce 75% of video
+```
+@Override
+public void onTrackingThirdQuartil() {}
+```
+
+* when the player have reproduce 95% of video
+```
+@Override
+public void onTrackingComplete() {}
+```
+
+* when the player have reproduce 100% of video
+```
+@Override
+public void onTrackingEnded() {}
+```
+
+* Custom event for report in a indicate time
+```
+@Override
+public void onCustomTrackingProgress() {}
+```
+
+* when the pause button is tap
+```
+@Override
+public void onPauseTap() {}
+```
+
+* when the play button is tap
+```
+@Override
+public void onPlayTap() {}
+```
+
+* Indicate if the bar of controls of the player is visible  
+```
+@Override
+public void onVisibilityChanged(boolean isVisible) {}
+```
+## Usage
+
+for usage the report events you need implements ExoPlayerComponetInterface, once this is done, only import the interfaces to your activity. 
+
+```
+public class MainActivity extends AppCompatActivity implements ExoPlayerComponetInterface {
+```
+
+in your void onCreate call to the next method: 
+
+```
+exoPlayerComponent.eventTimeListener(10);
+```
+
+and when instantiating ExoPlayerComponent you must enable the reportEvents parameter
+```
+exoPlayerComponent = new ExoPlayerComponent(this, videoURI, drmLicenseURI, drmScheme, extension, true, playerView);
+```
 
 ## URL for testing 
 
