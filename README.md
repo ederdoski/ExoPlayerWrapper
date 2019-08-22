@@ -185,7 +185,7 @@ The ExoPlayer example include a serie of url with DRM and without DRM for testin
 * Dash with DRM 
 ```
 {
-	"name": "WV: HDCP not specified",
+    "name": "WV: HDCP not specified",
     "uri": "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd",
     "drm_scheme": "widevine",
     "drm_license_url": "https://proxy.uat.widevine.com/proxy?video_id=d286538032258a1c&provider=widevine_test"
