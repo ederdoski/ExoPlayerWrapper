@@ -150,7 +150,7 @@ public void onPlayTap() {}
 @Override
 public void onVisibilityChanged(boolean isVisible) {}
 ```
-## Usage
+## Report events Usage
 
 for usage the report events you need implements ExoPlayerComponetInterface, once this is done, only import the interfaces to your activity. 
 
