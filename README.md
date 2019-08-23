@@ -40,12 +40,12 @@ dependencies {
 
 ## Usage
 
-1) Declare a var ExoPlayerComponent
+1) Declare a variable ExoPlayerComponent
 
 ```
 ExoPlayerComponent exoPlayerComponent;
 ```
-2) Instancie the following methods in its activity, these method are used to maintain the memory and protect the current instance of ExoPlayer.
+2) Instance the following methods in your activity, these method are used to maintain the memory and protect the current instance of ExoPlayer.
 
 ```
 @Override
