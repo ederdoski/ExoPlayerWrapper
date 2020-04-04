@@ -1,5 +1,4 @@
-# Android ExoPlayer Wrapper
-
+# Android ExoPlayer Wrapper [![Android Arsenal]( https://img.shields.io/badge/Android%20Arsenal-ExoPlayer%20Wrapper-green.svg?style=flat )]( https://android-arsenal.com/details/1/8094 )
 
 ## Introduction
 
